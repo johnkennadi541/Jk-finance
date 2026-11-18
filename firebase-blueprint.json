@@ -1,0 +1,126 @@
+{
+  "projectId": "skyplus-finance",
+  "plan": "spark-free-option-c",
+  "description": "SKYPLUS FINANCE Option C encrypted cloud schema blueprint. Local Room+SQLCipher remains the primary ledger. Cloud sync and Drive backup are strictly independent opt-in features.",
+  "entities": {
+    "privateProfile": {
+      "title": "PrivateUserProfile",
+      "description": "Minimal per-user profile & opt-in state under /users/{uid}/private/profile. Never publicly readable.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "cloudSyncEnabled": { "type": "boolean" },
+        "driveBackupEnabled": { "type": "boolean" },
+        "driveWifiOnly": { "type": "boolean" },
+        "deviceId": { "type": "string" },
+        "schemaVersion": { "type": "integer" },
+        "createdAt": { "type": "timestamp" },
+        "updatedAt": { "type": "timestamp" }
+      },
+      "required": ["uid", "cloudSyncEnabled", "driveBackupEnabled", "schemaVersion", "createdAt", "updatedAt"]
+    },
+    "recoveryCryptoMetadata": {
+      "title": "RecoveryCryptoMetadata",
+      "description": "Zero-knowledge PBKDF2-wrapped DEK stored under /users/{uid}/crypto_metadata/recovery. Raw passphrase and plaintext DEK are never stored.",
+      "type": "object",
+      "properties": {
+        "ownerUid": { "type": "string" },
+        "version": { "type": "integer" },
+        "kdfAlgorithm": { "type": "string" },
+        "kdfIterations": { "type": "integer" },
+        "saltBase64": { "type": "string" },
+        "wrappedDekBase64": { "type": "string" },
+        "nonceBase64": { "type": "string" },
+        "keyCheckHash": { "type": "string" },
+        "deviceId": { "type": "string" },
+        "createdAt": { "type": "timestamp" },
+        "updatedAt": { "type": "timestamp" }
+      },
+      "required": ["ownerUid", "version", "kdfAlgorithm", "kdfIterations", "saltBase64", "wrappedDekBase64", "nonceBase64", "keyCheckHash", "createdAt", "updatedAt"]
+    },
+    "encryptedFinancialRecord": {
+      "title": "EncryptedFinancialRecord",
+      "description": "AES-256-GCM encrypted record envelope for all financial entities. Plaintext financial amounts, merchant descriptions, balances, or SMS messages are strictly disallowed.",
+      "type": "object",
+      "properties": {
+        "recordId": { "type": "string" },
+        "ownerUid": { "type": "string" },
+        "entityType": { "type": "string" },
+        "encryptedPayloadBase64": { "type": "string" },
+        "payloadNonceBase64": { "type": "string" },
+        "schemaVersion": { "type": "integer" },
+        "syncVersion": { "type": "integer" },
+        "updatedByDeviceId": { "type": "string" },
+        "isDeleted": { "type": "boolean" },
+        "clientUpdatedAtMillis": { "type": "integer" },
+        "createdAt": { "type": "timestamp" },
+        "updatedAt": { "type": "timestamp" }
+      },
+      "required": ["recordId", "ownerUid", "entityType", "encryptedPayloadBase64", "payloadNonceBase64", "schemaVersion", "syncVersion", "updatedByDeviceId", "isDeleted", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{uid}/private/profile": {
+      "schema": { "$ref": "#/entities/privateProfile" },
+      "description": "Private user account & independent feature opt-in state."
+    },
+    "/users/{uid}/crypto_metadata/recovery": {
+      "schema": { "$ref": "#/entities/recoveryCryptoMetadata" },
+      "description": "PBKDF2-HMAC-SHA256 wrapped DEK envelope for cross-device decryption."
+    },
+    "/users/{uid}/accounts/{recordId}": {
+      "schema": { "$ref": "#/entities/encryptedFinancialRecord" },
+      "description": "Encrypted wallet/account records."
+    },
+    "/users/{uid}/transactions/{recordId}": {
+      "schema": { "$ref": "#/entities/encryptedFinancialRecord" },
+      "description": "Encrypted transaction ledger records."
+    },
+    "/users/{uid}/budgets/{recordId}": {
+      "schema": { "$ref": "#/entities/encryptedFinancialRecord" },
+      "description": "Encrypted monthly budget records."
+    },
+    "/users/{uid}/loans/{recordId}": {
+      "schema": { "$ref": "#/entities/encryptedFinancialRecord" },
+      "description": "Encrypted loan records."
+    },
+    "/users/{uid}/emi_payments/{recordId}": {
+      "schema": { "$ref": "#/entities/encryptedFinancialRecord" },
+      "description": "Encrypted EMI payment records."
+    },
+    "/users/{uid}/savings_goals/{recordId}": {
+      "schema": { "$ref": "#/entities/encryptedFinancialRecord" },
+      "description": "Encrypted savings goals."
+    },
+    "/users/{uid}/investments/{recordId}": {
+      "schema": { "$ref": "#/entities/encryptedFinancialRecord" },
+      "description": "Encrypted investment records."
+    },
+    "/users/{uid}/shopping_lists/{recordId}": {
+      "schema": { "$ref": "#/entities/encryptedFinancialRecord" },
+      "description": "Encrypted smart shopping lists."
+    },
+    "/users/{uid}/shopping_items/{recordId}": {
+      "schema": { "$ref": "#/entities/encryptedFinancialRecord" },
+      "description": "Encrypted smart shopping items."
+    },
+    "/users/{uid}/shopping_shop_prices/{recordId}": {
+      "schema": { "$ref": "#/entities/encryptedFinancialRecord" },
+      "description": "Encrypted custom shop price comparison records."
+    },
+    "/users/{uid}/categories/{recordId}": {
+      "schema": { "$ref": "#/entities/encryptedFinancialRecord" },
+      "description": "Encrypted category definitions."
+    },
+    "/users/{uid}/currencies/{recordId}": {
+      "schema": { "$ref": "#/entities/encryptedFinancialRecord" },
+      "description": "Encrypted currency wallet selections and cached rates."
+    },
+    "/users/{uid}/app_settings/{recordId}": {
+      "schema": { "$ref": "#/entities/encryptedFinancialRecord" },
+      "description": "Encrypted financial preferences and Safe-to-Spend guardrails."
+    }
+  }
+}

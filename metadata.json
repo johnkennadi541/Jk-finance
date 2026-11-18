@@ -1,0 +1,6 @@
+{
+  "name": "SkyPlus Finance",
+  "description": "Privacy-first offline personal finance manager with AES-256 SQLCipher storage, multi-currency tracking, Safe-to-Spend budgeting, loans/EMIs, and savings goals.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
