@@ -44,7 +44,21 @@ jobs:
           umask 077
           printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/release-keystore"
           test -s "$RUNNER_TEMP/release-keystore"
-          keytool -exportcert -keystore "$RUNNER_TEMP/release-keystore" -storepass:env KEYSTORE_PASSWORD -alias "$KEY_ALIAS" -rfc > "$RUNNER_TEMP/release-cert.pem"
+          if ! keytool -exportcert -keystore "$RUNNER_TEMP/release-keystore" -storepass:env KEYSTORE_PASSWORD -alias "$KEY_ALIAS" -rfc > "$RUNNER_TEMP/release-cert.pem" 2> "$RUNNER_TEMP/keytool-error.txt"; then
+            if grep -qiE 'password was incorrect|password is incorrect|keystore was tampered' "$RUNNER_TEMP/release-cert.pem" "$RUNNER_TEMP/keytool-error.txt"; then
+              echo 'Keystore could not be opened: the store password may be incorrect.' >&2
+            elif grep -qiE 'alias .* does not exist|alias .* not found' "$RUNNER_TEMP/release-cert.pem" "$RUNNER_TEMP/keytool-error.txt"; then
+              echo 'The configured key alias was not found in the keystore.' >&2
+            elif grep -qiE 'invalid keystore format|unrecognized keystore format' "$RUNNER_TEMP/release-cert.pem" "$RUNNER_TEMP/keytool-error.txt"; then
+              echo 'The decoded keystore has an invalid or unsupported format.' >&2
+            else
+              echo 'Unable to export a certificate from the provided release keystore; check keystore, store password and alias.' >&2
+            fi
+            exit 1
+          fi
+          openssl x509 -in "$RUNNER_TEMP/release-cert.pem" -noout >/dev/null
+          echo 'Release keystore certificate exported successfully.'
+          rm -f "$RUNNER_TEMP/keytool-error.txt"
 
       - name: Build signed release APK
         env:
