@@ -49,6 +49,12 @@ jobs:
               echo 'Keystore could not be opened: the store password may be incorrect.' >&2
             elif grep -qiE 'alias .* does not exist|alias .* not found' "$RUNNER_TEMP/release-cert.pem" "$RUNNER_TEMP/keytool-error.txt"; then
               echo 'The configured key alias was not found in the keystore.' >&2
+              if keytool -exportcert -keystore "$RUNNER_TEMP/release-keystore" -storepass:env KEYSTORE_PASSWORD -alias upload -rfc > "$RUNNER_TEMP/upload-cert-check.pem" 2>/dev/null && openssl x509 -in "$RUNNER_TEMP/upload-cert-check.pem" -noout >/dev/null 2>&1; then
+                echo 'The alias configured in the existing app release configuration (upload) was found; confirm it is the intended production key before changing the secret.' >&2
+              else
+                echo 'The alias configured in the existing app release configuration (upload) was not found.' >&2
+              fi
+              rm -f "$RUNNER_TEMP/upload-cert-check.pem"
             elif grep -qiE 'invalid keystore format|unrecognized keystore format' "$RUNNER_TEMP/release-cert.pem" "$RUNNER_TEMP/keytool-error.txt"; then
               echo 'The decoded keystore has an invalid or unsupported format.' >&2
             else
@@ -78,6 +84,14 @@ jobs:
           set -euo pipefail
           apk="app/build/outputs/apk/release/app-release.apk"
           test -s "$apk"
+          aapt=$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -n 1)
+          test -n "$aapt"
+          package_name=$("$aapt" dump badging "$apk" | sed -n "s/^package: name='\([^']*\)'.*/\1/p")
+          if [[ "$package_name" != 'com.skyplus.finance' ]]; then
+            echo 'APK application ID does not match com.skyplus.finance.' >&2
+            exit 1
+          fi
+          echo 'Verified APK application ID: com.skyplus.finance'
           apksigner=$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)
           test -n "$apksigner"
           "$apksigner" verify --verbose --print-certs "$apk" | tee "$RUNNER_TEMP/apk-signature.txt"
